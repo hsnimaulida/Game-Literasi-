@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petualangan Gelembung Literasi Bawah Laut</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            font-family: 'Fredoka', 'Poppins', sans-serif;
+            user-select: none; -webkit-user-select: none;
+            margin: 0; padding: 0;
+            width: 100vw; min-height: 100vh;
+            overflow-x: hidden; overflow-y: auto;
+        }
+        
+        .deep-sea-bg {
+            background: linear-gradient(180deg, #00b4d8 0%, #0077b6 40%, #03045e 100%);
+            min-height: 100vh; width: 100vw; position: relative;
+            overflow-x: hidden; display: flex;
+            align-items: center; justify-content: center;
+            padding: 20px 0;
+        }
+
+        .sea-creature {
+            position: absolute; pointer-events: none !important;
+            opacity: 0.85; right: -150px;
+            animation: swimFromRightToLeft linear infinite; z-index: 1;
+        }
+
+        @keyframes swimFromRightToLeft {
+            0% { transform: translateX(0) translateY(0); }
+            50% { transform: translateX(calc(-50vw - 150px)) translateY(-20px); }
+            100% { transform: translateX(calc(-100vw - 300px)) translateY(0); }
+        }
+
+        .card-game {
+            background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px);
+            border: 4px solid #f4a261; box-shadow: 0 12px 35px rgba(0,0,0,0.35);
+            position: relative; z-index: 10;
+        }
+
+        .pulse-play { animation: pulsePlayBtn 2s infinite; }
+        @keyframes pulsePlayBtn {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 183, 3, 0.85); }
+            70% { transform: scale(1.06); box-shadow: 0 0 0 30px rgba(255, 183, 3, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 183, 3, 0); }
+        }
+
+        .pulse-icon-play { animation: pulseIconPlay 1.5s infinite ease-in-out; }
+        @keyframes pulseIconPlay {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .aquarium-box {
+            border: 5px solid #023e8a;
+            box-shadow: inset 0 0 35px rgba(0,0,0,0.5), 0 6px 18px rgba(0,0,0,0.3);
+            position: relative; overflow: hidden !important;
+            background-image: url('https://images.unsplash.com/photo-1551244072-5d12893278ab?auto=format&fit=crop&w=1200&q=80');
+            background-size: cover; background-position: center; touch-action: manipulation;
+        }
+
+        @keyframes floatUpBubble {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 0.6; }
+            100% { transform: translateY(-300px) scale(1.1); opacity: 0; }
+        }
+        .bg-micro-bubble {
+            position: absolute; bottom: -10px; background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%; animation: floatUpBubble 3.5s infinite linear;
+            pointer-events: none; z-index: 2;
+        }
+
+        .bubble-item {
+            position: absolute;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(144, 224, 239, 0.75) 60%, rgba(0, 119, 182, 0.5) 100%);
+            border: 2.5px solid rgba(255, 255, 255, 0.9); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: inset -3px -3px 9px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.1s; user-select: none; text-align: center;
+            padding: 5px; font-weight: 700; color: #03045e; word-break: break-word;
+            z-index: 5; touch-action: manipulation;
+        }
+        .bubble-item:hover { transform: scale(1.1); }
+        .bubble-correct {
+            animation: flashGreen 0.4s ease;
+            background: radial-gradient(circle at 30% 30%, #a7f3d0 0%, #34d399 100%) !important;
+            border-color: #059669 !important; color: #065f46 !important;
+        }
+        .bubble-wrong {
+            animation: flashRed 0.4s ease;
+            background: radial-gradient(circle at 30% 30%, #fecaca 0%, #f87171 100%) !important;
+            border-color: #dc2626 !important; color: #7f1d1d !important;
+        }
+        @keyframes flashGreen { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+        @keyframes flashRed {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); } 40% { transform: translateX(6px); }
+            60% { transform: translateX(-6px); } 80% { transform: translateX(6px); }
+        }
+
+        /* Animasi Maskot */
+        @keyframes floatMascot {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+    </style>
+</head>
+<body class="deep-sea-bg">
+
+    <!-- Animasi Hewan Laut Background -->
+    <div class="sea-creature text-4xl" style="top: 3%; animation-duration: 14s; animation-delay: 0s;">🐠</div>
+    <div class="sea-creature text-5xl" style="top: 8%; animation-duration: 22s; animation-delay: 3s;">🐳</div>
+    <div class="sea-creature text-3xl" style="top: 13%; animation-duration: 12s; animation-delay: 1.5s;">🦀</div>
+    <div class="sea-creature text-4xl" style="top: 18%; animation-duration: 18s; animation-delay: 4s;">🐙</div>
+    <div class="sea-creature text-5xl" style="top: 23%; animation-duration: 25s; animation-delay: 2s;">🦈</div>
+    <div class="sea-creature text-4xl" style="top: 28%; animation-duration: 16s; animation-delay: 5s;">🐬</div>
+    <div class="sea-creature text-3xl" style="top: 36%; animation-duration: 15s; animation-delay: 1s;">🦑</div>
+    <div class="sea-creature text-5xl" style="top: 42%; animation-duration: 28s; animation-delay: 3.5s;">🐋</div>
+    <div class="sea-creature text-4xl" style="top: 54%; animation-duration: 19s; animation-delay: 2.2s;">🦞</div>
+    <div class="sea-creature text-4xl" style="top: 67%; animation-duration: 20s; animation-delay: 2.8s;">⭐</div>
+    <div class="sea-creature text-5xl" style="top: 89%; animation-duration: 26s; animation-delay: 3.8s;">🐠</div>
+
+    <!-- MASKOT: Bubu si Anjing Laut -->
+    <div id="mascot-container" class="fixed bottom-3 left-3 md:bottom-6 md:left-6 z-50 flex flex-row items-end gap-2 transition-transform duration-300 pointer-events-none">
+        <div id="mascot-character" class="text-6xl md:text-7xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" style="animation: floatMascot 3s ease-in-out infinite;">🦭</div>
+        <div id="mascot-bubble" class="hidden bg-white/95 backdrop-blur border-4 border-cyan-400 rounded-2xl rounded-bl-none px-4 py-2.5 shadow-xl mb-6 md:mb-8 max-w-[200px] md:max-w-[280px]">
+            <p id="mascot-text" class="text-[13px] md:text-sm font-bold text-blue-900 leading-snug"></p>
+        </div>
+    </div>
+
+    <div id="app" class="w-full max-w-4xl mx-auto flex flex-col items-center justify-center p-4 z-20 my-auto">
+
+        <!-- ================= PAGE 1: SPLASH SCREEN ================= -->
+        <div id="page-splash" class="w-full flex flex-col items-center justify-center text-center py-6">
+            <h1 class="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white drop-shadow-[0_5px_12px_rgba(0,0,0,0.85)] mb-10 tracking-wide leading-tight">
+                🌊 Petualangan Gelembung Literasi <br><span class="text-yellow-300">di Bawah Laut</span> 🐠
+            </h1>
+
+            <button onclick="goToNameInput()" class="pulse-play bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 rounded-full w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex items-center justify-center shadow-[0_15px_40px_rgba(0,0,0,0.65)] border-6 border-yellow-300 transform transition active:scale-95 cursor-pointer mx-auto relative z-30">
+                <span class="text-8xl md:text-9xl lg:text-[10rem] text-yellow-200 select-none drop-shadow-lg ml-3">▶</span>
+            </button>
+        </div>
+
+        <!-- ================= PAGE 2: NAMA PEMAIN ================= -->
+        <div id="page-name" class="w-full max-w-lg card-game rounded-3xl p-6 md:p-8 hidden">
+            <h2 class="text-2xl md:text-3xl font-bold text-center text-blue-900 mb-5">Masukkan Nama Penyelam 🎮</h2>
+            <div class="mb-5">
+                <label class="block text-slate-700 font-bold mb-2 text-lg">Nama Kamu / Tim:</label>
+                <input type="text" id="player-name" placeholder="Contoh: Budi Cilik" class="w-full px-4 py-3.5 rounded-2xl border-3 border-orange-300 focus:outline-none focus:border-orange-500 text-xl font-medium text-center bg-orange-50">
+            </div>
+            <button onclick="startGameMap()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-2xl py-4 rounded-2xl shadow-xl border-b-4 border-emerald-800 transition active:translate-y-1 cursor-pointer">
+                Lanjut ke Menu 🚀
+            </button>
+        </div>
+
+        <!-- ================= PAGE 3: PETA UTAMA ================= -->
+        <div id="page-map" class="w-full hidden max-w-3xl">
+            <div class="flex justify-between items-center bg-white/95 backdrop-blur px-5 py-3 rounded-2xl mb-4 shadow-md border-2 border-cyan-300 flex-wrap gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🐢</span>
+                    <div>
+                        <h3 id="display-name" class="font-bold text-lg text-blue-900 leading-tight">Pemain</h3>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">Penyelam Cilik</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleBGM()" id="bgm-toggle-btn" class="bg-blue-100 border-2 border-blue-400 px-3 py-1.5 rounded-xl font-bold text-blue-800 text-sm flex items-center gap-1.5 cursor-pointer hover:bg-blue-200 transition">
+                        🔊 Suara: ON
+                    </button>
+                    <div class="bg-amber-100 border-2 border-amber-400 px-3.5 py-1.5 rounded-xl font-bold text-amber-800 text-sm flex items-center gap-1.5">
+                        ⭐ Skor: <span id="total-stars">0</span>
+                    </div>
+                    <button onclick="goToSplash()" class="text-sm bg-red-100 hover:bg-red-200 text-red-700 font-bold px-3 py-2 rounded-xl transition cursor-pointer">Keluar</button>
+                </div>
+            </div>
+
+            <h2 class="text-2xl md:text-3xl font-extrabold text-white text-center mb-4 drop-shadow">Pilih Level Petualangan Literasi 🌊</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div onclick="startLevel(1)" class="card-game rounded-2xl p-4 text-center cursor-pointer hover:scale-102 transition transform border-4 border-cyan-500 group flex flex-col justify-between">
+                    <div>
+                        <div class="text-4xl mb-1.5 group-hover:scale-110 transition">🔤</div>
+                        <h3 class="text-lg font-bold text-cyan-900 mb-1">Level 1</h3>
+                        <p class="text-slate-600 text-xs mb-3 leading-relaxed">Cari Suku Kata Beragam Konsonan (B–Z)!</p>
+                    </div>
+                    <div class="bg-cyan-100 text-cyan-900 font-bold py-2 rounded-xl border border-cyan-300 flex items-center justify-center gap-1.5 text-sm shadow-sm">
+                        <span>Mainkan</span><span class="text-base pulse-icon-play">▶</span>
+                    </div>
+                </div>
+                <div onclick="startLevel(2)" class="card-game rounded-2xl p-4 text-center cursor-pointer hover:scale-102 transition transform border-4 border-emerald-500 group flex flex-col justify-between">
+                    <div>
+                        <div class="text-4xl mb-1.5 group-hover:scale-110 transition">🖼️</div>
+                        <h3 class="text-lg font-bold text-emerald-900 mb-1">Level 2</h3>
+                        <p class="text-slate-600 text-xs mb-3 leading-relaxed">Cari 5 Kata Sesuai 40 Variasi Gambar!</p>
+                    </div>
+                    <div class="bg-emerald-100 text-emerald-900 font-bold py-2 rounded-xl border border-emerald-300 flex items-center justify-center gap-1.5 text-sm shadow-sm">
+                        <span>Mainkan</span><span class="text-base pulse-icon-play">▶</span>
+                    </div>
+                </div>
+                <div onclick="startLevel(3)" class="card-game rounded-2xl p-4 text-center cursor-pointer hover:scale-102 transition transform border-4 border-purple-500 group flex flex-col justify-between">
+                    <div>
+                        <div class="text-4xl mb-1.5 group-hover:scale-110 transition">🫧</div>
+                        <h3 class="text-lg font-bold text-purple-900 mb-1">Level 3</h3>
+                        <p class="text-slate-600 text-xs mb-3 leading-relaxed">Cari 5 Kata Kategori Hewan & Buah!</p>
+                    </div>
+                    <div class="bg-purple-100 text-purple-900 font-bold py-2 rounded-xl border border-purple-300 flex items-center justify-center gap-1.5 text-sm shadow-sm">
+                        <span>Mainkan</span><span class="text-base pulse-icon-play">▶</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button onclick="showLeaderboardModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 rounded-2xl shadow-md border-2 border-amber-300 transition cursor-pointer text-base">
+                    🏆 Lihat Leaderboard (Papan Skor)
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 4: GAMEPLAY AREA ================= -->
+        <div id="page-game" class="w-full max-w-2xl card-game rounded-3xl p-5 md:p-6 hidden">
+            <div class="flex justify-between items-center bg-orange-100 border-2 border-orange-300 px-4 py-2 rounded-2xl mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🐢</span>
+                    <span id="game-player-badge" class="font-bold text-orange-900 text-sm">Pemain</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">⏱️</span>
+                    <span id="game-timer" class="font-extrabold text-orange-900 text-sm">00:00</span>
+                </div>
+            </div>
+            <div class="flex justify-between items-center mb-3" id="back-nav-container">
+                <button onclick="backToMap()" class="bg-slate-200 hover:bg-slate-300 font-bold px-3.5 py-2 rounded-xl text-slate-700 transition text-sm flex items-center gap-2 cursor-pointer">
+                    🌊 Kembali ke Menu
+                </button>
+                <div class="font-bold text-amber-600 text-base" id="game-progress">Soal 1 / 2</div>
+            </div>
+            <div id="game-content" class="text-center"></div>
+        </div>
+
+    </div>
+
+    <!-- MODAL LEADERBOARD -->
+    <div id="leaderboard-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="card-game rounded-3xl p-6 max-w-2xl w-full text-center relative shadow-2xl max-h-[90vh] flex flex-col">
+            <h2 class="text-2xl font-extrabold text-blue-900 mb-2">🏆 Papan Peringkat Literasi</h2>
+            <div class="flex justify-center gap-2 mb-3">
+                <button onclick="switchLeaderboardTab(1)" id="tab-btn-1" class="px-4 py-1.5 rounded-xl font-bold text-sm bg-cyan-600 text-white shadow-md cursor-pointer transition">Level 1</button>
+                <button onclick="switchLeaderboardTab(2)" id="tab-btn-2" class="px-4 py-1.5 rounded-xl font-bold text-sm bg-slate-200 text-slate-700 shadow-md cursor-pointer transition">Level 2</button>
+                <button onclick="switchLeaderboardTab(3)" id="tab-btn-3" class="px-4 py-1.5 rounded-xl font-bold text-sm bg-slate-200 text-slate-700 shadow-md cursor-pointer transition">Level 3</button>
+            </div>
+            <div id="leaderboard-list" class="space-y-2 text-left text-sm overflow-y-auto mb-4 px-1 flex-1 max-h-[45vh]"></div>
+            <button onclick="closeLeaderboardModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-2.5 rounded-2xl shadow-lg transition cursor-pointer text-base mx-auto mt-2">
+                Tutup ✖
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Logika Game, Narasi, & Themesong -->
+    <script>
+        let playerName = 'Penyelam Cilik';
+        let totalStars = 0;
+        let currentLevel = 1;
+        let currentQuestionIndex = 0;
+        let aquariumInterval = null;
+        let gameTimerInterval = null;
+        let secondsElapsed = 0;
+        let bubbleGameScore = 0;
+        let gameScoreEarned = 0;
+        let audioCtx = null;
+        let sessionLevel1Questions = [];
+        let sessionLevel2Questions = [];
+        let sessionLevel3Questions = [];
+
+        // Audio & Voice Control
+        let bgmPlaying = false;
+        let bgmTimer = null;
+        let userMutedExplicitly = false;
+        window.mascotUtterances = []; 
+
+        // Maskot Narasi Text-to-Speech (Queuing System Cepat - Normal Voice)
+        function speakMascot(text, cancelPrev = true) {
+            if (userMutedExplicitly) return;
+            if (!('speechSynthesis' in window)) return;
+            
+            const bubble = document.getElementById('mascot-bubble');
+            const textEl = document.getElementById('mascot-text');
+
+            if (cancelPrev) {
+                window.speechSynthesis.cancel();
+                textEl.innerHTML = text;
+                bubble.classList.remove('hidden');
+            }
+            
+            let cleanText = text.replace(/<[^>]*>?/gm, ''); 
+            let utterance = new SpeechSynthesisUtterance(cleanText);
+            
+            utterance.lang = 'id-ID'; 
+            utterance.pitch = 1.3;  // Dikembalikan ke nada normal/sedikit ceria
+            utterance.rate = 1.0;   // Dikembalikan ke kecepatan normal
+            
+            utterance.onstart = function() {
+                textEl.innerHTML = text;
+                bubble.classList.remove('hidden');
+            };
+
+            utterance.onend = function() {
+                setTimeout(() => {
+                    if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+                        bubble.classList.add('hidden');
+                    }
+                }, 1500);
+            };
+
+            window.mascotUtterances.push(utterance); 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // BGM Functions
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function startBGM() {
+            if (bgmPlaying || userMutedExplicitly) return;
+            bgmPlaying = true;
+            let ctx = getAudioContext();
+
+            const melody = [
+                { f: 392.00, d: 0.3 }, { f: 440.00, d: 0.3 }, { f: 523.25, d: 0.6 },
+                { f: 587.33, d: 0.3 }, { f: 523.25, d: 0.3 }, { f: 440.00, d: 0.6 },
+                { f: 349.23, d: 0.3 }, { f: 392.00, d: 0.3 }, { f: 440.00, d: 0.6 },
+                { f: 392.00, d: 0.6 }, { f: 329.63, d: 0.6 }
+            ];
+
+            let noteIndex = 0;
+            function playNextNote() {
+                if (!bgmPlaying) return;
+                try {
+                    let now = ctx.currentTime;
+                    let note = melody[noteIndex];
+                    let osc = ctx.createOscillator();
+                    let gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(note.f, now);
+
+                    gain.gain.setValueAtTime(0.08, now); 
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + note.d);
+
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(now); osc.stop(now + note.d);
+
+                    noteIndex = (noteIndex + 1) % melody.length;
+                    bgmTimer = setTimeout(playNextNote, 350);
+                } catch(e) {}
+            }
+            playNextNote();
+        }
+
+        function stopBGM() {
+            bgmPlaying = false;
+            if (bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; }
+        }
+
+        function toggleBGM() {
+            playSound('arcadeClick');
+            const btn = document.getElementById('bgm-toggle-btn');
+            if (!userMutedExplicitly) {
+                userMutedExplicitly = true;
+                stopBGM();
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                document.getElementById('mascot-bubble').classList.add('hidden');
+                btn.innerHTML = "🔇 Suara: OFF";
+                btn.className = "bg-red-100 border-2 border-red-400 px-3 py-1.5 rounded-xl font-bold text-red-800 text-sm flex items-center gap-1.5 cursor-pointer hover:bg-red-200 transition";
+            } else {
+                userMutedExplicitly = false;
+                startBGM();
+                speakMascot("Wah, suaranya sudah menyala lagi!", true);
+                btn.innerHTML = "🔊 Suara: ON";
+                btn.className = "bg-blue-100 border-2 border-blue-400 px-3 py-1.5 rounded-xl font-bold text-blue-800 text-sm flex items-center gap-1.5 cursor-pointer hover:bg-blue-200 transition";
+            }
+        }
+
+        // Leaderboard Data
+        let leaderboardData = JSON.parse(localStorage.getItem('literasi_sea_leaderboard_v3') || '{"1":[], "2":[], "3":[]}');
+
+        function saveScoreToLeaderboard(level, score, timeSec) {
+            let list = leaderboardData[level];
+            list.push({ name: playerName, score: score, time: timeSec });
+            list.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.time - b.time;
+            });
+            if (list.length > 10) leaderboardData[level] = list.slice(0, 10);
+            localStorage.setItem('literasi_sea_leaderboard_v3', JSON.stringify(leaderboardData));
+        }
+
+        function showLeaderboardModal() {
+            playSound('arcadeClick');
+            switchLeaderboardTab(1);
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+            document.getElementById('leaderboard-modal').classList.add('flex');
+            speakMascot("Ini dia papan skor para penyelam hebat!", true);
+        }
+
+        function switchLeaderboardTab(lvl) {
+            playSound('arcadeClick');
+            for(let i=1; i<=3; i++) {
+                let btn = document.getElementById(`tab-btn-${i}`);
+                if(i === lvl) btn.className = "px-4 py-1.5 rounded-xl font-bold text-sm bg-cyan-600 text-white shadow-md cursor-pointer transition";
+                else btn.className = "px-4 py-1.5 rounded-xl font-bold text-sm bg-slate-200 text-slate-700 shadow-md cursor-pointer transition";
+            }
+            const listEl = document.getElementById('leaderboard-list');
+            let data = leaderboardData[lvl];
+
+            if (!data || data.length === 0) {
+                listEl.innerHTML = `<p class="text-center text-slate-500 py-6 font-medium">Belum ada skor tersimpan untuk Level ${lvl}.</p>`;
+            } else {
+                listEl.innerHTML = data.map((item, idx) => {
+                    let mins = Math.floor(item.time / 60).toString().padStart(2, '0');
+                    let secs = (item.time % 60).toString().padStart(2, '0');
+                    return `
+                        <div class="flex justify-between items-center bg-white border border-cyan-200 px-4 py-2.5 rounded-xl font-bold shadow-2xs">
+                            <div class="flex items-center gap-3">
+                                <span class="text-cyan-800 w-6">${idx+1}.</span>
+                                <span class="text-blue-900 truncate max-w-[140px]">${item.name}</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-amber-600">⭐ ${item.score}</span>
+                                <span class="text-slate-500">⏱️ ${mins}:${secs}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function closeLeaderboardModal() {
+            playSound('arcadeClick');
+            document.getElementById('leaderboard-modal').classList.remove('flex');
+            document.getElementById('leaderboard-modal').classList.add('hidden');
+            speakMascot(`Ayo ${playerName}, pilih level petualanganmu!`, true);
+        }
+
+        // ================= SOAL LEVEL =================
+        const level1BankFull = [
+            { word: 'batu', coloredWord: '<span style="color:#ef4444;">ba</span>tu', syllable: 'ba', image: '🧱', decoys: ['bi','bu','ta','ti','tu','ka','ro'] },
+            { word: 'cabe', coloredWord: '<span style="color:#ef4444;">ca</span>be', syllable: 'ca', image: '🌶️', decoys: ['ci','cu','ba','bi','ta','ro','la'] },
+            { word: 'dasi', coloredWord: '<span style="color:#ef4444;">da</span>si', syllable: 'da', image: '👔', decoys: ['di','du','sa','si','su','ba','ca'] },
+            { word: 'foto', coloredWord: '<span style="color:#ef4444;">fo</span>to', syllable: 'fo', image: '🖼️', decoys: ['fa','fi','ta','ti','tu','ba','ca'] },
+            { word: 'gigi', coloredWord: '<span style="color:#ef4444;">gi</span>gi', syllable: 'gi', image: '🦷', decoys: ['ga','gu','ga','ga','ge','la','mi'] },
+            { word: 'kaki', coloredWord: '<span style="color:#ef4444;">ka</span>ki', syllable: 'ka', image: '🦶', decoys: ['ki','ku','ba','bi','sa','su','ro'] },
+            { word: 'lidi', coloredWord: '<span style="color:#ef4444;">li</span>di', syllable: 'li', image: '🧹', decoys: ['la','lu','di','da','du','pa','pi'] },
+            { word: 'madu', coloredWord: 'ma<span style="color:#ef4444;">du</span>', syllable: 'du', image: '🍯', decoys: ['ma','mi','da','de','lu','la','ni'] },
+            { word: 'paku', coloredWord: 'pa<span style="color:#ef4444;">ku</span>', syllable: 'ku', image: '📌', decoys: ['pa','pi','pu','ka','ki','ko','la'] },
+            { word: 'roti', coloredWord: '<span style="color:#ef4444;">ro</span>ti', syllable: 'ro', image: '🍞', decoys: ['ra','ri','ru','ta','ti','tu','ba'] }
+        ];
+
+        const level2BankFull = [
+            { items: [{word:'buku', icon:'📖'}, {word:'lidi', icon:'🧹'}, {word:'madu', icon:'🍯'}, {word:'bola', icon:'⚽'}, {word:'topi', icon:'👒'}], decoys: ['batu','kayu','pipi','susu','gigi','paku'] },
+            { items: [{word:'susu', icon:'🥛'}, {word:'paku', icon:'📌'}, {word:'gigi', icon:'🦷'}, {word:'roti', icon:'🍞'}, {word:'baju', icon:'👕'}], decoys: ['buku','lidi','madu','bola','topi','kaki'] },
+            { items: [{word:'batu', icon:'🧱'}, {word:'kayu', icon:'🪵'}, {word:'siku', icon:'📐'}, {word:'pipi', icon:'😊'}, {word:'gigi', icon:'🦷'}], decoys: ['bola','topi','madu','susu','paku','roti'] },
+            { items: [{word:'kaki', icon:'🦶'}, {word:'dasi', icon:'👔'}, {word:'jari', icon:'🖐️'}, {word:'sate', icon:'🍢'}, {word:'pita', icon:'🎀'}], decoys: ['buku','lidi','batu','kayu','susu','gigi'] },
+            { items: [{word:'tahu', icon:'🧈'}, {word:'biji', icon:'🌱'}, {word:'roda', icon:'🎡'}, {word:'peta', icon:'🗺️'}, {word:'kota', icon:'🏙️'}], decoys: ['bola','topi','madu','paku','susu','dasi'] },
+            { items: [{word:'pipi', icon:'😊'}, {word:'buku', icon:'📖'}, {word:'topi', icon:'👒'}, {word:'susu', icon:'🥛'}, {word:'baju', icon:'👕'}], decoys: ['lidi','madu','bola','paku','gigi','roti'] },
+            { items: [{word:'lidi', icon:'🧹'}, {word:'madu', icon:'🍯'}, {word:'roti', icon:'🍞'}, {word:'paku', icon:'📌'}, {word:'dasi', icon:'👔'}], decoys: ['buku','topi','bola','susu','gigi','kaki'] },
+            { items: [{word:'bola', icon:'⚽'}, {word:'kaki', icon:'🦶'}, {word:'jari', icon:'🖐️'}, {word:'sate', icon:'🍢'}, {word:'pita', icon:'🎀'}], decoys: ['madu','paku','roti','baju','dasi','siku'] },
+            { items: [{word:'siku', icon:'📐'}, {word:'kayu', icon:'🪵'}, {word:'batu', icon:'🧱'}, {word:'peta', icon:'🗺️'}, {word:'kota', icon:'🏙️'}], decoys: ['buku','topi','lidi','susu','gigi','tahu'] },
+            { items: [{word:'biji', icon:'🌱'}, {word:'tahu', icon:'🧈'}, {word:'roda', icon:'🎡'}, {word:'gigi', icon:'🦷'}, {word:'susu', icon:'🥛'}], decoys: ['bola','lidi','madu','paku','roti','dasi'] }
+        ];
+
+        const hewanList = ["Kucing", "Anjing", "Sapi", "Kambing", "Ayam", "Bebek", "Burung", "Ikan", "Gajah", "Harimau", "Singa", "Kuda", "Kerbau", "Kelinci", "Tikus", "Ular", "Semut", "Kupu", "Panda", "Zebra"];
+        const buahList = ["Apel", "Pisang", "Jeruk", "Mangga", "Pepaya", "Semangka", "Anggur", "Nanas", "Melon", "Jambu", "Stroberi", "Durian", "Rambutan", "Sirsak", "Belimbing", "Salak", "Kelapa", "Ceri", "Pir"];
+
+        function generateLevel3Data() {
+            const typesPool = ['hewan', 'buah'];
+            let shuffledTypes = [...typesPool].sort(() => Math.random() - 0.5);
+            
+            return [
+                { type: shuffledTypes[0], text: `Temukan 5 kata nama ${shuffledTypes[0] === 'hewan' ? 'Hewan' : 'Buah'}!`, targetType: shuffledTypes[0] },
+                { type: shuffledTypes[1], text: `Temukan 5 kata nama ${shuffledTypes[1] === 'hewan' ? 'Hewan' : 'Buah'}!`, targetType: shuffledTypes[1] }
+            ].map((q) => {
+                let targetList = q.targetType === 'hewan' ? hewanList : buahList;
+                let otherList = q.targetType === 'hewan' ? buahList : hewanList;
+
+                let corrects = [...targetList].sort(() => Math.random() - 0.5).slice(0, 5);
+                let decoys = [...otherList].sort(() => Math.random() - 0.5).slice(0, 5);
+
+                let allOptions = [
+                    ...corrects.map(t => ({ text: t, isCorrect: true })),
+                    ...decoys.map(d => ({ text: d, isCorrect: false }))
+                ].sort(() => Math.random() - 0.5);
+
+                return { instruction: q.text, corrects: corrects, allOptions: allOptions };
+            });
+        }
+
+        // ================= NAVIGASI & STATE =================
+        function goToNameInput() {
+            if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+            getAudioContext(); 
+            startBGM(); 
+            playSound('arcadeClick');
+            document.getElementById('page-splash').classList.add('hidden');
+            document.getElementById('page-name').classList.remove('hidden');
+            speakMascot("Halo! Siapa namamu, penyelam cilik?", true);
+        }
+
+        function goToSplash() {
+            playSound('arcadeClick');
+            stopAquarium(); stopTimer(); stopBGM(); userMutedExplicitly = false;
+            document.getElementById('bgm-toggle-btn').innerHTML = "🔊 Suara: ON";
+            document.getElementById('bgm-toggle-btn').className = "bg-blue-100 border-2 border-blue-400 px-3 py-1.5 rounded-xl font-bold text-blue-800 text-sm flex items-center gap-1.5 cursor-pointer hover:bg-blue-200 transition";
+            document.getElementById('page-name').classList.add('hidden');
+            document.getElementById('page-map').classList.add('hidden');
+            document.getElementById('page-game').classList.add('hidden');
+            document.getElementById('page-splash').classList.remove('hidden');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            document.getElementById('mascot-bubble').classList.add('hidden');
+        }
+
+        function startGameMap() {
+            playSound('arcadeClick');
+            const nameInput = document.getElementById('player-name').value.trim();
+            playerName = nameInput ? nameInput : 'Penyelam Cilik';
+            document.getElementById('display-name').innerText = playerName;
+            document.getElementById('page-name').classList.add('hidden');
+            document.getElementById('page-map').classList.remove('hidden');
+            speakMascot(`Ayo ${playerName}, pilih level petualanganmu!`, true);
+        }
+
+        function startTimer() {
+            stopTimer(); secondsElapsed = 0;
+            document.getElementById('game-timer').innerText = "00:00";
+            gameTimerInterval = setInterval(() => {
+                secondsElapsed++;
+                let mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+                let secs = (secondsElapsed % 60).toString().padStart(2, '0');
+                document.getElementById('game-timer').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (gameTimerInterval) { clearInterval(gameTimerInterval); gameTimerInterval = null; }
+        }
+
+        function backToMap() {
+            playSound('arcadeClick');
+            stopAquarium(); stopTimer();
+            document.getElementById('page-game').classList.add('hidden');
+            document.getElementById('page-map').classList.remove('hidden');
+            speakMascot("Pilih level petualangan yang lain yuk!", true);
+        }
+
+        function startLevel(level) {
+            playSound('arcadeClick');
+            currentLevel = level; currentQuestionIndex = 0; gameScoreEarned = 0;
+            stopAquarium();
+            
+            if (level === 1) sessionLevel1Questions = [...level1BankFull].sort(() => Math.random() - 0.5).slice(0, 2);
+            else if (level === 2) sessionLevel2Questions = [...level2BankFull].sort(() => Math.random() - 0.5).slice(0, 2);
+            else if (level === 3) sessionLevel3Questions = generateLevel3Data();
+
+            document.getElementById('page-map').classList.add('hidden');
+            document.getElementById('page-game').classList.remove('hidden');
+            document.getElementById('game-player-badge').innerText = playerName;
+            startTimer();
+            
+            speakMascot(`Memulai level ${level}. Semangat!`, true);
+            loadQuestion();
+        }
+
+        function stopAquarium() {
+            if (aquariumInterval) { clearInterval(aquariumInterval); aquariumInterval = null; }
+        }
+
+        function loadQuestion() {
+            stopAquarium();
+            const container = document.getElementById('game-content');
+            const backNavContainer = document.getElementById('back-nav-container');
+            let totalQ = 2;
+
+            if (currentQuestionIndex >= totalQ) return;
+            backNavContainer.style.display = 'flex';
+            document.getElementById('game-progress').innerText = `Soal ${currentQuestionIndex + 1} / ${totalQ}`;
+            
+            if (currentLevel === 1) {
+                let qData = sessionLevel1Questions[currentQuestionIndex];
+                bubbleGameScore = 0;
+                let instructionHTML = `Cari suku kata "<span class="text-red-500">${qData.syllable}</span>" dari kata: <span class="text-blue-900 underline">${qData.coloredWord}</span>`;
+                
+                // MENGGUNAKAN MODE ANTREAN (cancelPrev = false)
+                speakMascot(`Cari 5 gelembung dengan suku kata ${qData.syllable}, dari kata ${qData.word}!`, false);
+
+                container.innerHTML = `
+                    <div class="mb-2 flex items-center justify-center gap-3 bg-cyan-50 border-2 border-cyan-200 px-4 py-2 rounded-2xl">
+                        <span class="text-3xl">${qData.image}</span>
+                        <h3 class="text-lg md:text-xl font-bold text-slate-800">${instructionHTML}</h3>
+                    </div>
+                    <div id="aquarium-container" class="aquarium-box w-full h-[250px] rounded-2xl relative mb-3 overflow-hidden">
+                        <div class="bg-micro-bubble left-[5%] w-2 h-2" style="animation-delay: 0s; animation-duration: 3s;"></div>
+                        <div class="bg-micro-bubble left-[35%] w-3 h-3" style="animation-delay: 1.2s; animation-duration: 3.8s;"></div>
+                    </div>
+                    <div class="bg-blue-900/10 border-2 border-blue-300 px-4 py-2 rounded-2xl flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700 uppercase">Suku Kata Terkumpul:</span>
+                        <div class="flex gap-2 items-center" id="bubble-indicators">
+                            <span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span>
+                        </div>
+                    </div>
+                `;
+
+                let options = [];
+                for(let i=0; i<5; i++) options.push({ text: qData.syllable, isCorrect: true });
+                qData.decoys.forEach(d => options.push({ text: d, isCorrect: false }));
+                options.sort(() => Math.random() - 0.5);
+                initAquariumBubbles({ correctsCount: 5, allOptions: options }, handleStageCompletion);
+            } 
+            else if (currentLevel === 2) {
+                let qData = sessionLevel2Questions[currentQuestionIndex];
+                bubbleGameScore = 0;
+                
+                speakMascot("Cari 5 kata yang sesuai dengan gambar di atas ya!", false);
+
+                container.innerHTML = `
+                    <div class="mb-2">
+                        <h3 class="text-base font-bold text-slate-800 mb-1.5">Cari 5 Kata Sesuai Gambar Berikut!</h3>
+                        <div class="flex justify-center gap-2 mb-2" id="target-items-container">
+                            ${qData.items.map((item, idx) => `
+                                <div id="target-item-${idx}" class="flex flex-col items-center bg-emerald-50 border-2 border-emerald-300 px-2.5 py-1 rounded-xl shadow-xs transition-all">
+                                    <span class="text-2xl">${item.icon}</span><span class="text-[11px] font-bold text-emerald-900">${item.word}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div id="aquarium-container" class="aquarium-box w-full h-[220px] rounded-2xl relative mb-3 overflow-hidden">
+                        <div class="bg-micro-bubble left-[15%] w-2 h-2" style="animation-delay: 0s; animation-duration: 3s;"></div>
+                    </div>
+                    <div class="bg-blue-900/10 border-2 border-blue-300 px-4 py-1.5 rounded-2xl flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700 uppercase">Kata Ditemukan:</span>
+                        <div class="flex gap-2 items-center" id="bubble-indicators">
+                            <span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span>
+                        </div>
+                    </div>
+                `;
+
+                let options = [
+                    ...qData.items.map(item => ({ text: item.word, isCorrect: true, targetObj: item })),
+                    ...qData.decoys.map(d => ({ text: d, isCorrect: false }))
+                ].sort(() => Math.random() - 0.5);
+                initAquariumBubblesForLevel2(options, qData.items);
+            }
+            else if (currentLevel === 3) {
+                let q = sessionLevel3Questions[currentQuestionIndex];
+                bubbleGameScore = 0;
+
+                speakMascot(q.instruction, false);
+
+                container.innerHTML = `
+                    <div class="mb-2">
+                        <h3 class="text-lg md:text-xl font-bold text-slate-800">${q.instruction}</h3>
+                    </div>
+                    <div id="aquarium-container" class="aquarium-box w-full h-[260px] rounded-2xl relative mb-3 overflow-hidden">
+                        <div class="bg-micro-bubble left-[10%] w-2 h-2" style="animation-delay: 0s; animation-duration: 3s;"></div>
+                    </div>
+                    <div class="bg-blue-900/10 border-2 border-blue-300 px-4 py-2 rounded-2xl flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700 uppercase">Indikator Gelembung Benar:</span>
+                        <div class="flex gap-2 items-center" id="bubble-indicators">
+                            <span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span><span class="bubble-ind text-2xl">🫧</span>
+                        </div>
+                    </div>
+                `;
+                initAquariumBubbles(q, handleStageCompletion);
+            }
+        }
+
+        // ================= LOGIKA GELEMBUNG UMUM =================
+        function initAquariumBubbles(q, onSuccessCallback) {
+            const container = document.getElementById('aquarium-container');
+            const boxWidth = container.clientWidth || 550; const boxHeight = 240;
+
+            let bubbles = q.allOptions.map((item) => {
+                let wordLength = item.text.length;
+                let size = Math.max(65, wordLength * 11); 
+                let x = Math.random() * (boxWidth - size - 20) + 10;
+                let y = Math.random() * (boxHeight - size - 30) + 10;
+                let vx = (Math.random() - 0.5) * 1.2; let vy = (Math.random() - 0.5) * 1.2;
+                if (vx === 0) vx = 0.6; if (vy === 0) vy = 0.6;
+
+                let el = document.createElement('div');
+                el.className = 'bubble-item'; el.style.width = `${size}px`; el.style.height = `${size}px`;
+                el.style.fontSize = wordLength > 7 ? '0.65rem' : '0.85rem';
+                el.innerText = item.text; container.appendChild(el);
+
+                el.onclick = () => {
+                    if (el.classList.contains('bubble-correct') || el.classList.contains('bubble-wrong')) return;
+
+                    if (item.isCorrect) {
+                        playSound('correct'); el.classList.add('bubble-correct'); bubbleGameScore++;
+                        
+                        let indContainer = document.getElementById('bubble-indicators');
+                        if (indContainer && indContainer.children[bubbleGameScore - 1]) {
+                            indContainer.children[bubbleGameScore - 1].innerText = '💥';
+                            indContainer.children[bubbleGameScore - 1].style.transform = 'scale(1.3)';
+                        }
+                        setTimeout(() => { el.style.transform = 'scale(0)'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 400);
+
+                        if (bubbleGameScore >= q.correctsCount || (q.corrects && bubbleGameScore >= q.corrects.length)) {
+                            stopAquarium(); onSuccessCallback();
+                        }
+                    } else {
+                        playSound('wrong'); el.classList.add('bubble-wrong');
+                        setTimeout(() => el.classList.remove('bubble-wrong'), 500);
+                    }
+                };
+                return { el, x, y, vx, vy, size, isPopped: false };
+            });
+
+            aquariumInterval = setInterval(() => {
+                let currentBoxWidth = container.clientWidth || boxWidth;
+                bubbles.forEach(b => {
+                    if (b.isPopped) return;
+                    b.x += b.vx; b.y += b.vy;
+                    if (b.x <= 5 || b.x + b.size >= currentBoxWidth - 5) { b.vx *= -1; b.x = Math.max(5, Math.min(b.x, currentBoxWidth - b.size - 5)); }
+                    if (b.y <= 5 || b.y + b.size >= boxHeight - 20) { b.vy *= -1; b.y = Math.max(5, Math.min(b.y, boxHeight - b.size - 20)); }
+                    b.el.style.left = `${b.x}px`; b.el.style.top = `${b.y}px`;
+                });
+            }, 30);
+        }
+
+        // ================= LOGIKA GELEMBUNG LEVEL 2 =================
+        function initAquariumBubblesForLevel2(allOptions, targetItems) {
+            const container = document.getElementById('aquarium-container');
+            const boxWidth = container.clientWidth || 550; const boxHeight = 210;
+            let foundWords = [];
+
+            let bubbles = allOptions.map((item) => {
+                let wordLength = item.text.length;
+                let size = Math.max(70, wordLength * 12); 
+                let x = Math.random() * (boxWidth - size - 20) + 10;
+                let y = Math.random() * (boxHeight - size - 30) + 10;
+                let vx = (Math.random() - 0.5) * 1.2; let vy = (Math.random() - 0.5) * 1.2;
+                if (vx === 0) vx = 0.6; if (vy === 0) vy = 0.6;
+
+                let el = document.createElement('div');
+                el.className = 'bubble-item'; el.style.width = `${size}px`; el.style.height = `${size}px`;
+                el.style.fontSize = '0.85rem'; el.innerText = item.text; container.appendChild(el);
+
+                el.onclick = () => {
+                    if (el.classList.contains('bubble-correct') || el.classList.contains('bubble-wrong')) return;
+
+                    if (item.isCorrect && !foundWords.includes(item.text)) {
+                        playSound('correct'); el.classList.add('bubble-correct');
+                        foundWords.push(item.text); bubbleGameScore++;
+
+                        targetItems.forEach((tItem, idx) => {
+                            if (tItem.word === item.text) {
+                                let targetEl = document.getElementById(`target-item-${idx}`);
+                                if (targetEl) { targetEl.style.transform = 'scale(0)'; targetEl.style.opacity = '0'; setTimeout(() => targetEl.remove(), 350); }
+                            }
+                        });
+                        
+                        let indContainer = document.getElementById('bubble-indicators');
+                        if (indContainer && indContainer.children[bubbleGameScore - 1]) {
+                            indContainer.children[bubbleGameScore - 1].innerText = '💥';
+                            indContainer.children[bubbleGameScore - 1].style.transform = 'scale(1.3)';
+                        }
+                        setTimeout(() => { el.style.transform = 'scale(0)'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 400);
+
+                        if (bubbleGameScore >= targetItems.length) { stopAquarium(); handleStageCompletion(); }
+                    } else {
+                        playSound('wrong'); el.classList.add('bubble-wrong');
+                        setTimeout(() => el.classList.remove('bubble-wrong'), 500);
+                    }
+                };
+                return { el, x, y, vx, vy, size, isPopped: false };
+            });
+
+            aquariumInterval = setInterval(() => {
+                let currentBoxWidth = container.clientWidth || boxWidth;
+                bubbles.forEach(b => {
+                    if (b.isPopped) return;
+                    b.x += b.vx; b.y += b.vy;
+                    if (b.x <= 5 || b.x + b.size >= currentBoxWidth - 5) { b.vx *= -1; b.x = Math.max(5, Math.min(b.x, currentBoxWidth - b.size - 5)); }
+                    if (b.y <= 5 || b.y + b.size >= boxHeight - 20) { b.vy *= -1; b.y = Math.max(5, Math.min(b.y, boxHeight - b.size - 20)); }
+                    b.el.style.left = `${b.x}px`; b.el.style.top = `${b.y}px`;
+                });
+            }, 30);
+        }
+
+        // ================= PENYELESAIAN SOAL/STAGE =================
+        function handleStageCompletion() {
+            gameScoreEarned += 50;
+            currentQuestionIndex++;
+            setTimeout(() => {
+                let totalQ = 2;
+                if (currentQuestionIndex < totalQ) {
+                    triggerMassiveConfetti();
+                    speakMascot("Wah, kamu hebat sekali! Ayo lanjut ke soal berikutnya.", true);
+                    showFeedbackModal("Hebat Sekali! 🌊", "Soal Berhasil Diselesaikan (+50 Poin)! Lanjut soal berikutnya!", true);
+                } else {
+                    stopTimer(); playSound('victory'); triggerMassiveConfetti();
+                    
+                    let finalTotalScore = gameScoreEarned;
+                    totalStars += finalTotalScore;
+                    document.getElementById('total-stars').innerText = totalStars;
+                    saveScoreToLeaderboard(currentLevel, finalTotalScore, secondsElapsed);
+
+                    let mins = Math.floor(secondsElapsed / 60);
+                    let secs = secondsElapsed % 60;
+                    let timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs} detik`;
+                    
+                    document.getElementById('back-nav-container').style.display = 'none';
+                    speakMascot(`Hore! ${playerName} berhasil menyelesaikan level ini!`, true);
+                    showFeedbackModal("Hore! Level Selesai! 🌟", `Hebat ${playerName}! Total Skor Level: <b>${finalTotalScore} Poin</b> (${timeStr})!`, false, true);
+                }
+            }, 1000);
+        }
+
+        function showFeedbackModal(title, message, next=false, finish=false) {
+            const container = document.getElementById('game-content');
+            container.innerHTML = `
+                <div class="py-5">
+                    <div class="text-5xl mb-3 animate-bounce">🫧🎉</div>
+                    <h3 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">${title}</h3>
+                    <p class="text-slate-600 text-base mb-5">${message}</p>
+                    ${next ? `<button onclick="loadQuestion()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg px-8 py-3 rounded-2xl shadow-lg cursor-pointer">Lanjut ➔</button>` : ''}
+                    ${finish ? `<button onclick="backToMap()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-lg px-8 py-3 rounded-2xl shadow-lg cursor-pointer">🌊 Kembali ke Menu Peta</button>` : ''}
+                </div>
+            `;
+        }
+
+        function triggerMassiveConfetti() {
+            playSound('applause'); 
+            var duration = 2 * 1000; var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 6, angle: 60, spread: 50, origin: { x: 0, y: 0.7 }});
+                confetti({ particleCount: 6, angle: 120, spread: 50, origin: { x: 1, y: 0.7 }});
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        function playSound(type) {
+            try {
+                const ctx = getAudioContext(); const now = ctx.currentTime;
+                if (type === 'arcadeClick') {
+                    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                    osc.type = 'sine'; osc.connect(gain); gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now); osc.stop(now + 0.05);
+                } 
+                else if (type === 'correct') {
+                    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now); osc.stop(now + 0.4);
+                } 
+                else if (type === 'wrong') {
+                    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                    osc.type = 'sawtooth'; osc.connect(gain); gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(180, now); osc.frequency.linearRampToValueAtTime(80, now + 0.25);
+                    gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                } 
+                else if (type === 'applause') {
+                    const bufferSize = ctx.sampleRate * 1.0; const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                    const noise = ctx.createBufferSource(); noise.buffer = buffer;
+                    const filter = ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 1000; filter.Q.value = 1;
+                    const gain = ctx.createGain(); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+                    noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination); noise.start(now);
+                } 
+                else if (type === 'victory') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                        osc.type = 'triangle'; osc.connect(gain); gain.connect(ctx.destination);
+                        const startTime = now + idx * 0.12; osc.frequency.setValueAtTime(freq, startTime);
+                        gain.gain.setValueAtTime(0.25, startTime); gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+                        osc.start(startTime); osc.stop(startTime + 0.3);
+                    });
+                }
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>
